@@ -243,6 +243,12 @@ public:
 		heapifyUp(pos.val);
 	}
 
+	void keyChanged(HeapPosition const pos)
+	{
+		heapifyDown(pos.val);
+		heapifyUp(pos.val);
+	}
+
 private:
 	static int parent(int i)
 	{
@@ -262,7 +268,7 @@ private:
 		return 2 * i + 1;
 	}
 
-	// left and right of i are heaps, but at i we need to restore heap property
+	// restore heap property by moving element down
 	void heapifyDown(int i)
 	{
 		int const n = size();
@@ -291,6 +297,7 @@ private:
 		}
 	}
 
+	// restore heap property by moving element up
 	void heapifyUp(int i)
 	{
 		T elem = std::move(heap[i]);
@@ -321,6 +328,7 @@ private:
 		if (n > i)
 		{
 			heapifyDown(i);
+			heapifyUp(i);
 		}
 		return result;
 	}
@@ -399,11 +407,12 @@ void test_heap()
 	MyHeap my_heap;
 	assert(my_heap.empty());
 
-	std::uniform_int_distribution<> heap_size_distrib(5, 100);
+	std::uniform_int_distribution<> heap_size_distrib_small(1, 10);
+	std::uniform_int_distribution<> heap_size_distrib_large(5, 100);
 	std::uniform_int_distribution<> priority_distrib(-100, 1000);
 	for (int test = 0; test < 10; ++test)
 	{
-		int const n = heap_size_distrib(rnd);
+		int const n = test < 5 ? heap_size_distrib_small(rnd) : heap_size_distrib_large(rnd);
 		std::cout << __func__ << " test no " << test << ", building heap with " << n << " elements\n";
 
 		// Fill priorities.
@@ -454,7 +463,8 @@ void test_heap()
 			if (i % 7 == 0)
 			{
 				MyHeapEntry * entry = &entries[i];
-				std::cout << "erasing entry idx " << i
+				std::cout << "erasing entry with prio " << entry->prio
+					<< " idx " << i
 					<< " heap position " << entry->pos_in_heap.val << "\n";
 				my_heap.erase(entry->pos_in_heap);
 				assert(entry->pos_in_heap.val == 0);
