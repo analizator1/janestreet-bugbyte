@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_compile_options(-Wall -Wextra -Wvla -Winit-self -Wnon-virtual-dtor -Woverloaded-virtual)
 
 add_executable(bugbyte
-	bugbyte.cpp
+	main.cpp
 	permutations.cpp
 )
 

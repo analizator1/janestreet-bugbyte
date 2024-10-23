@@ -1,1 +1,8 @@
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
 bugbyte
+heap_test
+permutations_test
