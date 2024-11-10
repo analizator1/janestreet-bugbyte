@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-void test_permutations_case(UintVec const & v, unsigned k, unsigned target_sum)
+void test_permutations_case(UintVec const & v, unsigned k, int target_sum)
 {
 	std::cout << "Permutations of v=" << v << " with " << k << " elements and sum=" << target_sum << " are:\n";
 	PermutationsWithSumGenerator generator(v, k, target_sum, [](UintVec const & perm) {
@@ -28,6 +28,14 @@ void test_permutations()
 	test_permutations_case(v, 1, 8);
 	test_permutations_case(v, 1, 10);
 	test_permutations_case(v, 2, 10);
+	test_permutations_case(v, 2, -1);
+	test_permutations_case(v, 2, 0);
+	test_permutations_case(v, 2, 1);
+	test_permutations_case(v, 2, 2);
+	test_permutations_case(v, 2, 3);
+	test_permutations_case(v, 0, -1);
+	test_permutations_case(v, 0, 0);
+	test_permutations_case(v, 0, 1);
 
 	std::cout << "END " << __func__ << "\n";
 }

@@ -16,7 +16,7 @@ public:
 	 * k           length of permutations
 	 * target_sum  the sum of elements of each generated permutation
 	 */
-	PermutationsWithSumGenerator(UintVec const & v, unsigned k, unsigned target_sum,
+	PermutationsWithSumGenerator(UintVec const & v, unsigned k, int target_sum,
 			std::function<void(UintVec const &)> callback);
 
 	void run();
@@ -24,11 +24,11 @@ public:
 private:
 	void do_run(unsigned pos, unsigned cur_sum);
 
-	UintVec const & v;
+	UintVec const v;
 	std::vector<bool> used;
 	UintVec perm;
 	unsigned const k;
-	unsigned const target_sum;
+	int const target_sum;
 	std::function<void(UintVec const &)> callback;
 };
 

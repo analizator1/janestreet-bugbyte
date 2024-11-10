@@ -26,7 +26,7 @@ public:
 	}
 
 private:
-	// Only elements as defined by neighbors are valid.
+	// Only elements as defined by Vertex::neighbors are valid.
 	// weight==0 if not yet filled
 	// All existing edges must have a weight, from the set {1, 2, ..., num_edges}.
 	uint8_t weights[c_max_num_vertices][c_max_num_vertices];
@@ -35,58 +35,60 @@ private:
 int num_vertices;
 int num_edges;
 
+// index 0 is unused
+std::vector<bool> available_weights;
+int num_available_weights; // number of true elements in available_weights
+
 int secret_start_vertex;
 int secret_final_vertex;
 
 struct Vertex
 {
 	std::vector<int> neighbors;
-	int sum_of_weights = 0; // 0 if no constraint
-	std::vector<int> path_weights;
+	int sum_of_weights = 0; // sum of weights of adjacent edges; 0 if no constraint
+	std::vector<int> path_weights; // constraints on path weight starting from this vertex
 };
 
 std::vector<Vertex> vertices;
 
 Edges edges;
 
-void checkVertexId(int v)
+void check_vertex_id(int v)
 {
 	if (v < 0 || v >= num_vertices)
 		throw std::runtime_error("invalid vertex id");
 }
 
-void skipComments()
+std::vector<unsigned> make_available_weights_vec()
 {
-	auto oldmask = std::cin.exceptions();
-	std::cin.exceptions(std::ios::goodbit);
-	char c;
-	while (std::cin.get(c))
+	std::vector<unsigned> weights;
+	for (int i = 1; i <= num_edges; ++i)
 	{
-		if (std::isspace(c))
+		if (available_weights[i])
 		{
-			// ignore
-		}
-		else if (c == '#')
-		{
-			// ignore until the end of line
-			std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		}
-		else
-		{
-			// put it back and return
-			std::cin.putback(c);
-			break;
+			weights.push_back(i);
 		}
 	}
-	// clear failbit if there was EOF
-	std::cin.clear();
-	std::cin.exceptions(oldmask);
+	assert((int)weights.size() == num_available_weights);
+	return weights;
 }
 
-void readData()
+void print_graph_weights()
+{
+	for (int v = 0; v < num_vertices; ++v)
+	{
+		Vertex & vertex = vertices[v];
+		for (int neigh_v : vertex.neighbors)
+		{
+			std::cout << "(" << v << ", " << neigh_v << ") => " << edges.getWeight(v, neigh_v) << "\n";
+		}
+	}
+}
+
+void read_data()
 {
 	std::cin.exceptions(std::ios::failbit);
-	skipComments();
+	skipComments(std::cin);
 	std::cin >> num_vertices >> num_edges;
 	if (num_vertices <= 0 || num_vertices > c_max_num_vertices)
 		throw std::runtime_error("invalid num_vertices");
@@ -95,17 +97,29 @@ void readData()
 
 	vertices.resize(num_vertices);
 
+	available_weights.resize(num_edges + 1, true);
+	available_weights[0] = false;
+	num_available_weights = num_edges;
+
 	for (int i = 0; i < num_edges; ++i)
 	{
 		int v1, v2, weight;
-		skipComments();
+		skipComments(std::cin);
 		std::cin >> v1 >> v2 >> weight;
-		checkVertexId(v1);
-		checkVertexId(v2);
+		check_vertex_id(v1);
+		check_vertex_id(v2);
 		if (weight < 0 || weight > num_edges)
 			throw std::runtime_error("invalid weight");
 
-		edges.setWeight(v1, v2, weight);
+		if (weight > 0)
+		{
+			if (!available_weights[weight])
+				throw std::runtime_error("weight was already used");
+			available_weights[weight] = false;
+			--num_available_weights;
+			edges.setWeight(v1, v2, weight);
+		}
+
 		vertices[v1].neighbors.push_back(v2);
 		vertices[v2].neighbors.push_back(v1);
 	}
@@ -113,47 +127,133 @@ void readData()
 	for (int v = 0; v < num_vertices; ++v)
 	{
 		Vertex & vertex = vertices[v];
+		// Check duplicate edges.
 		std::sort(vertex.neighbors.begin(), vertex.neighbors.end());
 		for (int i = 1; i < (int)vertex.neighbors.size(); ++i)
 		{
 			if (vertex.neighbors[i] == vertex.neighbors[i-1])
-				throw std::runtime_error("duplicate neighbor");
+				throw std::runtime_error("duplicate edge");
 		}
 	}
 
 	int num_constraints;
-	skipComments();
+	skipComments(std::cin);
 	std::cin >> num_constraints;
 	for (int i = 0; i < num_constraints; ++i)
 	{
 		int v, sum;
-		skipComments();
+		skipComments(std::cin);
 		std::cin >> v >> sum;
-		checkVertexId(v);
+		check_vertex_id(v);
 		if (sum <= 0)
 			throw std::runtime_error("invalid sum of edge weights");
 		vertices[v].sum_of_weights = sum;
 	}
 
-	skipComments();
+	skipComments(std::cin);
 	std::cin >> num_constraints;
 	for (int i = 0; i < num_constraints; ++i)
 	{
 		int v, path_weight;
-		skipComments();
+		skipComments(std::cin);
 		std::cin >> v >> path_weight;
-		checkVertexId(v);
+		check_vertex_id(v);
 		if (path_weight <= 0)
 			throw std::runtime_error("invalid path_weight");
 		vertices[v].path_weights.push_back(path_weight);
 	}
 
-	skipComments();
-	std::cin >> secret_start_vertex >> secret_final_vertex;
-	checkVertexId(secret_start_vertex);
-	checkVertexId(secret_final_vertex);
+	for (int v = 0; v < num_vertices; ++v)
+	{
+		Vertex & vertex = vertices[v];
+		// Finding solution is faster if we check paths starting from the shortest.
+		std::sort(vertex.path_weights.begin(), vertex.path_weights.end());
+	}
 
-	skipComments();
+	skipComments(std::cin);
+	std::cin >> secret_start_vertex >> secret_final_vertex;
+	check_vertex_id(secret_start_vertex);
+	check_vertex_id(secret_final_vertex);
+
+	skipComments(std::cin);
+}
+
+std::vector<int> vertices_for_sum_of_weights;
+
+void rec_solve(int vertices_for_sum_of_weights_idx)
+{
+	std::cout << "rec_solve(" << vertices_for_sum_of_weights_idx << ")\n";
+	if (vertices_for_sum_of_weights_idx == (int)vertices_for_sum_of_weights.size())
+	{
+		// All sum_of_weights constraints are satisfied. We must fill in remaining edges which are not adjacent to any
+		// vertex with this constraint.
+		// TODO: if num_available_weights > 0 then find all unfilled edges, then for each permutation of
+		// available_weights, fill the edges with the permutation. Then check graph constraints.
+		std::cout << "===== all sum_of_weights constraints are satisfied with the following graph =====\n";
+		print_graph_weights();
+	}
+	else
+	{
+		int const v = vertices_for_sum_of_weights[vertices_for_sum_of_weights_idx];
+		Vertex & vertex = vertices[v];
+		// We must try to satisfy the sum_of_weights constraint. It may happen that all adjacent edges are already
+		// filled. In this case we try to generate a zero-length permutation, which only succeeds if the sum is exactly
+		// as expected. Therefore it serves as a check for the constraint, so we must not skip it.
+		int current_weight_sum = 0;
+		std::vector<int> neighbors_with_unfilled_edge;
+		for (int neigh_v : vertex.neighbors)
+		{
+			int const weight = edges.getWeight(v, neigh_v);
+			current_weight_sum += weight;
+			if (weight == 0)
+			{
+				neighbors_with_unfilled_edge.push_back(neigh_v);
+			}
+		}
+		int const remaining_sum = vertex.sum_of_weights - current_weight_sum;
+		PermutationsWithSumGenerator generator(make_available_weights_vec(), neighbors_with_unfilled_edge.size(), remaining_sum,
+			[&](UintVec const & weights_to_fill) {
+				assert(weights_to_fill.size() == neighbors_with_unfilled_edge.size());
+				for (int i = 0; i < (int)weights_to_fill.size(); ++i)
+				{
+					int const neigh_v = neighbors_with_unfilled_edge[i];
+					int const weight = weights_to_fill[i];
+					assert(edges.getWeight(v, neigh_v) == 0);
+					edges.setWeight(v, neigh_v, weight);
+					assert(available_weights[weight]);
+					available_weights[weight] = false;
+				}
+				num_available_weights -= (int)weights_to_fill.size();
+				rec_solve(vertices_for_sum_of_weights_idx + 1);
+				num_available_weights += (int)weights_to_fill.size();
+				for (int i = 0; i < (int)weights_to_fill.size(); ++i)
+				{
+					int const neigh_v = neighbors_with_unfilled_edge[i];
+					int const weight = weights_to_fill[i];
+					assert(edges.getWeight(v, neigh_v) == weight);
+					edges.setWeight(v, neigh_v, 0);
+					assert(!available_weights[weight]);
+					available_weights[weight] = true;
+				}
+		});
+		generator.run();
+	}
+}
+
+void solve()
+{
+	for (int v = 0; v < num_vertices; ++v)
+	{
+		Vertex & vertex = vertices[v];
+		if (vertex.sum_of_weights)
+		{
+			vertices_for_sum_of_weights.push_back(v);
+		}
+	}
+	std::sort(vertices_for_sum_of_weights.begin(), vertices_for_sum_of_weights.end(),
+		[](int v1, int v2) { return vertices[v1].sum_of_weights < vertices[v2].sum_of_weights; }
+	);
+	rec_solve(0);
 }
 
 } // namespace
@@ -164,7 +264,7 @@ int main()
 	std::cout << "Reading data from stdin...\n";
 	try
 	{
-		readData();
+		read_data();
 	}
 	catch (std::ios::failure & err)
 	{
@@ -179,6 +279,9 @@ int main()
 	std::cout << "Read all data.\n";
 	std::cout << "num_vertices: " << num_vertices << "\n";
 	std::cout << "num_edges: " << num_edges << "\n";
+	std::cout << "num_available_weights: " << num_available_weights << "\n";
 	std::cout << "secret_start_vertex: " << secret_start_vertex << "\n";
 	std::cout << "secret_final_vertex: " << secret_final_vertex << "\n";
+
+	solve();
 }

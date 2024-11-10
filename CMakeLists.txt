@@ -8,6 +8,7 @@ add_compile_options(-Wall -Wextra -Wvla -Winit-self -Wnon-virtual-dtor -Woverloa
 add_executable(bugbyte
 	main.cpp
 	permutations.cpp
+	utils.cpp
 )
 
 add_executable(heap_test

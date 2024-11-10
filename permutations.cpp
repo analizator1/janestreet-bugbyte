@@ -1,9 +1,11 @@
 #include "permutations.h"
+#include "utils.h"
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
-PermutationsWithSumGenerator::PermutationsWithSumGenerator(UintVec const & v, unsigned k, unsigned target_sum,
+PermutationsWithSumGenerator::PermutationsWithSumGenerator(UintVec const & v, unsigned k, int target_sum,
 		std::function<void(UintVec const &)> callback):
 	v(v),
 	used(v.size()),
@@ -12,24 +14,37 @@ PermutationsWithSumGenerator::PermutationsWithSumGenerator(UintVec const & v, un
 	target_sum(target_sum),
 	callback(callback)
 {
-	assert(k > 0);
 	assert(std::is_sorted(v.begin(), v.end()));
 }
 
 void PermutationsWithSumGenerator::run()
 {
-	if (k > v.size())
+	std::cout << "PermutationsWithSumGenerator::run():"
+		<< " v=" << v
+		<< " k=" << k
+		<< " target_sum=" << target_sum
+		<< "\n";
+	if (k > v.size() || target_sum < 0)
 	{
-		return;
+		return; // no solutions
+	}
+	if (k == 0)
+	{
+		if (target_sum == 0)
+		{
+			// exactly one solution
+			callback(perm);
+		}
+		return; // no other solutions
 	}
 	unsigned max_possible_sum = 0;
 	for (unsigned i = v.size() - k; i < v.size(); ++i)
 	{
 		max_possible_sum += v[i];
 	}
-	if (max_possible_sum < target_sum)
+	if (max_possible_sum < (unsigned)target_sum)
 	{
-		return;
+		return; // no solutions
 	}
 	do_run(0, 0);
 }
@@ -37,10 +52,10 @@ void PermutationsWithSumGenerator::run()
 void PermutationsWithSumGenerator::do_run(unsigned pos, unsigned cur_sum)
 {
 	assert(pos < k);
-	assert(cur_sum <= target_sum);
+	assert(cur_sum <= (unsigned)target_sum);
 	if (pos == k - 1)
 	{
-		unsigned needed = target_sum - cur_sum;
+		unsigned needed = (unsigned)target_sum - cur_sum;
 		auto it = std::lower_bound(v.begin(), v.end(), needed);
 		if (it != v.end() && *it == needed)
 		{
@@ -55,7 +70,7 @@ void PermutationsWithSumGenerator::do_run(unsigned pos, unsigned cur_sum)
 	{
 		for (unsigned i = 0; i < v.size(); ++i)
 		{
-			if (cur_sum + v[i] > target_sum)
+			if (cur_sum + v[i] > (unsigned)target_sum)
 			{
 				break;
 			}

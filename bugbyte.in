@@ -26,7 +26,7 @@
 13 16 0
 15 17 0
 17 16 0
-# number of vertices with constraint on sum of edge weights
+# number of vertices with constraint on sum of adjacent edge weights
 10
 # list of them: each line with vertex id and the sum
 0 17
@@ -43,11 +43,11 @@
 7
 # list of then: each line with vertex id and the path weight
 2 31
-3 19
 3 23
+3 19
+6 16
 6 6
 6 9
-6 16
 5 8
 # secret start, final vertex
 4 17

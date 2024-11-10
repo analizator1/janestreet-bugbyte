@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <ostream>
+#include <istream>
 
 template<class T>
 std::ostream & operator<<(std::ostream & out, std::vector<T> const & vec)
@@ -19,5 +20,7 @@ std::ostream & operator<<(std::ostream & out, std::vector<T> const & vec)
 	out << " }";
 	return out;
 }
+
+void skipComments(std::istream & inp);
 
 #endif // _UTILS_H_
