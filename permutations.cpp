@@ -19,11 +19,12 @@ PermutationsWithSumGenerator::PermutationsWithSumGenerator(UintVec const & v, un
 
 void PermutationsWithSumGenerator::run()
 {
-	std::cout << "PermutationsWithSumGenerator::run():"
-		<< " v=" << v
-		<< " k=" << k
-		<< " target_sum=" << target_sum
-		<< "\n";
+	//std::cout << "PermutationsWithSumGenerator::run():"
+	//	<< " v=" << v
+	//	<< " k=" << k
+	//	<< " target_sum=" << target_sum
+	//	<< "\n";
+
 	if (k > v.size() || target_sum < 0)
 	{
 		return; // no solutions

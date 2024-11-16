@@ -46,10 +46,13 @@ struct Vertex
 {
 	std::vector<int> neighbors;
 	int sum_of_weights = 0; // sum of weights of adjacent edges; 0 if no constraint
-	std::vector<int> path_weights; // constraints on path weight starting from this vertex
 };
 
 std::vector<Vertex> vertices;
+
+// constraints on path weight starting from a vertex
+// vector of pair: { vertex id, path weight }
+std::vector<std::pair<int, int>> vertex_path_weight_constraints;
 
 Edges edges;
 
@@ -62,6 +65,7 @@ void check_vertex_id(int v)
 std::vector<unsigned> make_available_weights_vec()
 {
 	std::vector<unsigned> weights;
+	weights.reserve(num_edges);
 	for (int i = 1; i <= num_edges; ++i)
 	{
 		if (available_weights[i])
@@ -80,7 +84,10 @@ void print_graph_weights()
 		Vertex & vertex = vertices[v];
 		for (int neigh_v : vertex.neighbors)
 		{
-			std::cout << "(" << v << ", " << neigh_v << ") => " << edges.getWeight(v, neigh_v) << "\n";
+			if (v < neigh_v)
+			{
+				std::cout << "(" << v << ", " << neigh_v << ") => " << edges.getWeight(v, neigh_v) << "\n";
+			}
 		}
 	}
 }
@@ -160,14 +167,7 @@ void read_data()
 		check_vertex_id(v);
 		if (path_weight <= 0)
 			throw std::runtime_error("invalid path_weight");
-		vertices[v].path_weights.push_back(path_weight);
-	}
-
-	for (int v = 0; v < num_vertices; ++v)
-	{
-		Vertex & vertex = vertices[v];
-		// Finding solution is faster if we check paths starting from the shortest.
-		std::sort(vertex.path_weights.begin(), vertex.path_weights.end());
+		vertex_path_weight_constraints.emplace_back(v, path_weight);
 	}
 
 	skipComments(std::cin);
@@ -178,19 +178,88 @@ void read_data()
 	skipComments(std::cin);
 }
 
+void all_constraints_satisfied()
+{
+	std::cout << "===== found solution =====\n";
+	print_graph_weights();
+}
+
+// Finds a non-self-intersecting path.
+class FindPathOfGivenWeight
+{
+public:
+	FindPathOfGivenWeight(int desired_path_weight):
+		on_current_path(num_vertices),
+		desired_path_weight(desired_path_weight)
+	{
+	}
+
+	bool run(int start_vertex)
+	{
+		return rec_find(start_vertex, 0);
+	}
+
+private:
+	bool rec_find(int v, int current_path_weight)
+	{
+		if (current_path_weight >= desired_path_weight)
+		{
+			return current_path_weight == desired_path_weight;
+		}
+
+		assert(!on_current_path[v]);
+		on_current_path[v] = true;
+
+		for (int neigh_v : vertices[v].neighbors)
+		{
+			if (!on_current_path[neigh_v] &&
+					rec_find(neigh_v, current_path_weight + edges.getWeight(v, neigh_v)))
+				return true;
+		}
+
+		on_current_path[v] = false;
+		return false;
+	}
+
+	std::vector<bool> on_current_path;
+	int desired_path_weight;
+};
+
+void all_edge_weights_filled()
+{
+	for (auto const & [v, path_weight] : vertex_path_weight_constraints)
+	{
+		FindPathOfGivenWeight finder(path_weight);
+		if (!finder.run(v))
+			return;
+	}
+
+	all_constraints_satisfied();
+}
+
+void sum_of_weights_constraints_satisfied()
+{
+	// All sum_of_weights constraints are satisfied. We must fill in remaining edges which are not adjacent to any
+	// vertex with this constraint.
+	if (num_available_weights > 0)
+	{
+		// Find all unfilled edges, then for each permutation of available_weights, fill the edges with the permutation.
+		throw std::runtime_error("unimplemented: num_available_weights>0");
+	}
+	else
+	{
+		all_edge_weights_filled();
+	}
+}
+
 std::vector<int> vertices_for_sum_of_weights;
 
 void rec_solve(int vertices_for_sum_of_weights_idx)
 {
-	std::cout << "rec_solve(" << vertices_for_sum_of_weights_idx << ")\n";
+	//std::cout << "rec_solve(" << vertices_for_sum_of_weights_idx << ")\n";
 	if (vertices_for_sum_of_weights_idx == (int)vertices_for_sum_of_weights.size())
 	{
-		// All sum_of_weights constraints are satisfied. We must fill in remaining edges which are not adjacent to any
-		// vertex with this constraint.
-		// TODO: if num_available_weights > 0 then find all unfilled edges, then for each permutation of
-		// available_weights, fill the edges with the permutation. Then check graph constraints.
-		std::cout << "===== all sum_of_weights constraints are satisfied with the following graph =====\n";
-		print_graph_weights();
+		sum_of_weights_constraints_satisfied();
 	}
 	else
 	{
@@ -253,6 +322,13 @@ void solve()
 	std::sort(vertices_for_sum_of_weights.begin(), vertices_for_sum_of_weights.end(),
 		[](int v1, int v2) { return vertices[v1].sum_of_weights < vertices[v2].sum_of_weights; }
 	);
+
+	// Finding solution is faster if we check paths starting from the shortest.
+	std::sort(vertex_path_weight_constraints.begin(), vertex_path_weight_constraints.end(),
+		[](std::pair<int, int> const & p1, std::pair<int, int> const & p2) {
+			return p1.second < p2.second;
+	});
+
 	rec_solve(0);
 }
 

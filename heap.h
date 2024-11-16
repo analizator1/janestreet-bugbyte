@@ -44,6 +44,7 @@ public:
 		for (int i = 1; i <= n; ++i)
 		{
 			heap[i] = *first++;
+			assert(cmp(heap[i], heap[i]));
 			setPosition(heap[i], HeapPosition{i});
 		}
 		buildHeap();
@@ -58,6 +59,7 @@ public:
 	{
 		heap.push_back(std::move(elem));
 		int const n = size();
+		assert(cmp(heap[n], heap[n]));
 		setPosition(heap[n], HeapPosition{n});
 	}
 
