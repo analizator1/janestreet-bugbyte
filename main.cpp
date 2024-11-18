@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <limits>
-#include <random>
 #include <vector>
+#include <string>
 
+#include "dijkstra.h"
 #include "utils.h"
 #include "permutations.h"
 
@@ -178,13 +178,58 @@ void read_data()
 	skipComments(std::cin);
 }
 
+struct GetNeighbors
+{
+	std::vector<int> const & operator()(int v) const
+	{
+		return vertices[v].neighbors;
+	}
+};
+
+struct GetWeight
+{
+	int operator()(int v1, int v2) const
+	{
+		return edges.getWeight(v1, v2);
+	}
+};
+
 void all_constraints_satisfied()
 {
 	std::cout << "===== found solution =====\n";
 	print_graph_weights();
+
+	std::vector<int> dist;
+	std::vector<int> pred;
+	Dijkstra<int, GetNeighbors, GetWeight> dijkstra(dist, pred, num_vertices);
+	dijkstra.run(secret_start_vertex);
+
+	std::cout << "distance between start and final secret vertex: " << dist[secret_final_vertex] << "\n";
+	for (int v = 0; v < num_vertices; ++v)
+	{
+		std::cout << "distance to vertex " << v << " is: " << dist[v]
+			<< " and predecessor is: " << pred[v] << "\n";
+	}
+
+	std::vector<int> weights_on_secret_path;
+	for (int v = secret_final_vertex; pred[v] != -1; v = pred[v])
+	{
+		check_vertex_id(v);
+		weights_on_secret_path.push_back(edges.getWeight(pred[v], v));
+	}
+	std::cout << "weights on secret path: " << weights_on_secret_path << "\n";
+
+	std::string secret_message(weights_on_secret_path.size(), ' ');
+	for (int i = 0; i < (int)weights_on_secret_path.size(); ++i)
+	{
+		secret_message[i] = weights_on_secret_path[i] - 1 + 'A';
+	}
+	std::cout << "secret message: \"" << secret_message << "\"\n";
+	std::reverse(secret_message.begin(), secret_message.end());
+	std::cout << "secret message reversed: \"" << secret_message << "\"\n";
 }
 
-// Finds a non-self-intersecting path.
+// Finds a non-self-intersecting path with desired weight.
 class FindPathOfGivenWeight
 {
 public:

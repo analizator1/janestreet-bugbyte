@@ -7,6 +7,22 @@
 
 #include "heap.h"
 
+/*
+ * Dijkstra implements finding shortest paths from a single source in a graph with non-negative edge weights.
+ *
+ * Given graph with n vertices, it computes, for each vertex i reachable from start:
+ * - dist[i]: distance from start to vertex i
+ * - pred[i]: predecessor vertex on the shortest path from start to i (or -1 if i==start)
+ * For unreachable vertex i:
+ * - dist[i] is std::numeric_limits<WeightT>::max()
+ * - pred[i] is -1
+ *
+ * Input params:
+ * - n: number of vertices
+ * - getNeighbors(i): returns vertices adjacent to i
+ * - getWeight(v1, v2): returns weight of edge (v1, v2)
+ * - start: the source vertex
+ */
 template<class WeightT, class GetNeighbors, class GetWeight>
 class Dijkstra
 {
@@ -20,7 +36,9 @@ public:
 		getNeighbors(getNeighbors),
 		getWeight(getWeight)
 	{
-		assert(n >= 0);
+		assert(n > 0);
+		dist.resize(n);
+		pred.resize(n);
 	}
 
 	void run(int start)
@@ -36,6 +54,7 @@ public:
 		dist[start] = 0;
 
 		std::vector<HeapPosition> positions;
+		positions.resize(n);
 		Heap<int, HeapCompare, HeapSetPosition> q{HeapCompare{dist}, HeapSetPosition{positions}};
 		for (int i = 0; i < n; ++i)
 		{
@@ -71,7 +90,7 @@ private:
 	{
 		std::vector<WeightT> & dist;
 
-		void operator()(int v1, int v2)
+		bool operator()(int v1, int v2)
 		{
 			return dist[v1] <= dist[v2];
 		}
