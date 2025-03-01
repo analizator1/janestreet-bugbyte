@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstdint>
 
 #include "dijkstra.h"
 #include "utils.h"
